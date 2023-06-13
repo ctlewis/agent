@@ -24,7 +24,7 @@ Main (unreleased)
   - `prometheus.exporter.kafka` collects metrics from Kafka Server (@oliver-zhang)
   - `otelcol.processor.attributes` accepts telemetry data from other `otelcol`
     components and modifies attributes of a span, log, or metric. (@ptodev)
-
+  - `otelcol.exporter.loadbalancing` - export traces to multiple OTLP gRPC endpoints in a load-balanced way. (@ptodev)
 
 ### Enhancements
 

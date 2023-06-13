@@ -129,7 +129,7 @@ func (args *KeepaliveEnforcementPolicy) Convert() *otelconfiggrpc.KeepaliveEnfor
 // GRPCClientArguments holds shared gRPC settings for components which launch
 // gRPC clients.
 type GRPCClientArguments struct {
-	Endpoint string `river:"endpoint,attr"`
+	Endpoint string `river:"endpoint,attr,optional"`
 
 	Compression CompressionType `river:"compression,attr,optional"`
 
