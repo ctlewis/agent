@@ -1,4 +1,4 @@
-package prometheusconvert_test
+package promtailconvert_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/grafana/agent/converter/diag"
-	"github.com/grafana/agent/converter/internal/prometheusconvert"
+	"github.com/grafana/agent/converter/internal/promtailconvert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +35,7 @@ func TestConvert(t *testing.T) {
 			caseName = strings.TrimSuffix(caseName, promSuffix)
 
 			t.Run(caseName, func(t *testing.T) {
-				actual, diags := prometheusconvert.Convert(inputBytes)
+				actual, diags := promtailconvert.Convert(inputBytes)
 
 				expectedDiags := diag.Diagnostics(nil)
 				errorFile := strings.TrimSuffix(path, promSuffix) + errorsSuffix

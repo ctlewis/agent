@@ -6,6 +6,8 @@ package loki
 
 import (
 	"context"
+	"github.com/grafana/agent/pkg/river/token"
+	"github.com/grafana/agent/pkg/river/token/builder"
 	"sync"
 	"time"
 
@@ -26,6 +28,14 @@ const finalEntryTimeout = 5 * time.Second
 // LogsReceiver is an alias for chan Entry which is used for component
 // communication.
 type LogsReceiver chan Entry
+
+// TODO(piotr): Since LogsReceiver is not an interface, we can't extend it...
+func (l LogsReceiver) RiverTokenize() []builder.Token {
+	return []builder.Token{{
+		Tok: token.STRING,
+		Lit: "loki.write.FIX_ME.receiver",
+	}}
+}
 
 // Entry is a log entry with labels.
 type Entry struct {

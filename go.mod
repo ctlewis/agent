@@ -13,9 +13,6 @@ require (
 	github.com/PuerkitoBio/rehttp v1.1.0
 	github.com/Shopify/sarama v1.38.1
 	github.com/alecthomas/kingpin/v2 v2.3.2
-	github.com/richardartoul/molecule v1.0.1-0.20221107223329-32cfee06a052
-	github.com/spaolacci/murmur3 v1.1.0
-	github.com/zeebo/xxh3 v1.0.2
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
 	github.com/aws/aws-sdk-go v1.44.187
 	github.com/aws/aws-sdk-go-v2 v1.17.2
@@ -207,7 +204,6 @@ require (
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/controller-runtime v0.14.6
 	sigs.k8s.io/yaml v1.3.0
-	github.com/google/pprof v0.0.0-20230111200839-76d1ae5aea2b
 
 )
 
