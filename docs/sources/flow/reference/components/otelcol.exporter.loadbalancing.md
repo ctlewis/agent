@@ -8,7 +8,7 @@ labels:
 
 {{< docs/shared lookup="flow/stability/beta.md" source="agent" >}}
 
-`otelcol.exporter.loadbalancing` accepts traces from other `otelcol` components
+`otelcol.exporter.loadbalancing` accepts logs and/or traces from other `otelcol` components
 and writes them over the network using the OpenTelemetry Protocol (OTLP) protocol. 
 
 > **NOTE**: `otelcol.exporter.loadbalancing` is a wrapper over the upstream
@@ -18,8 +18,17 @@ and writes them over the network using the OpenTelemetry Protocol (OTLP) protoco
 Multiple `otelcol.exporter.loadbalancing` components can be specified by giving them
 different labels.
 
+Note that either a trace ID or a service name is used for the decision on which backend to use. 
+The actual backend load isn't taken into consideration. Even though this load-balancer won't do 
+round-robin balancing of the batches, the load distribution should be very similar among backends 
+with a standard deviation under 5% at the current configuration.
+
 `otelcol.exporter.loadbalancing` is especially useful for backends configured with tail-based samplers
 which make a decision based on the view of the full trace.
+
+When a list of backends is updated, around `1/n` of the space will be changed, so that the same trace ID 
+might be directed to a different backend, where `n` is the number of backends. This should be stable enough 
+for most cases, and the higher the number of backends, the less disruption it should cause.
 
 ## Usage
 
@@ -44,7 +53,7 @@ Name | Type | Description | Default | Required
 ---- | ---- | ----------- | ------- | --------
 `routing_key` | `string` | Routing strategy for load balancing. | `"traceID"` | no
 
-The `routing_key` attribute determines how to route spans across endpoints. Its value could be one of the following:
+The `routing_key` attribute determines how to route signals across endpoints. Its value could be one of the following:
 * `"service"`: exports spans based on their service name. This is useful when using processors like the span metrics, 
 so all spans for each service are sent to consistent collector instances for metric collection. 
 Otherwise, metrics for the same services would be sent to different collectors, making aggregations inaccurate.
@@ -101,7 +110,7 @@ Name | Type | Description | Default | Required
 
 ### dns block
 
-The `dns` block resolves an IP address via the `hostname` attribute. This IP address 
+The `dns` block periodically resolves an IP address via the DNS `hostname` attribute. This IP address 
 and the port specified via the `port` attribute will then be used by the gRPC exporter 
 as the endpoint to which to send data to.
 
@@ -139,10 +148,6 @@ Name | Type | Description | Default | Required
 `headers` | `map(string)` | Additional headers to send with the request. | `{}` | no
 `balancer_name` | `string` | Which gRPC client-side load balancer to use for requests. | | no
 `auth` | `capsule(otelcol.Handler)` | Handler from an `otelcol.auth` component to use for authenticating requests. | | no
-
-> **NOTE**: The `client` block also has a hidden `endpoint` attribute which is normally used to set the gRPC endpoint.
-> This attribute should NOT be used in the `otelcol.exporter.loadbalancing` component, because it will be overridden
-> according to the settings in the [resolver][] block.
 
 {{< docs/shared lookup="flow/reference/components/otelcol-compression-field.md" source="agent" >}}
 
@@ -215,8 +220,9 @@ Name | Type | Description
 ---- | ---- | -----------
 `input` | `otelcol.Consumer` | A value that other components can use to send telemetry data to.
 
-`input` accepts `otelcol.Consumer` data for any telemetry signal (metrics,
-logs, or traces).
+`input` accepts `otelcol.Consumer` data for telemetry signals of these types:
+* logs
+* traces
 
 ## Component health
 
@@ -230,14 +236,15 @@ information.
 
 ## Example
 
-This example accepts OTLP traces over gRPC. It then sends them in a load-balanced 
-way to "localhost:55690" or "localhost:55700" according to their trace ID.
+This example accepts OTLP logs and traces over gRPC. It then sends them in a load-balanced 
+way to "localhost:55690" or "localhost:55700".
 
 ```river
 otelcol.receiver.otlp "default" {
     grpc {}
     output {
         traces  = [otelcol.exporter.loadbalancing.default.input]
+        logs    = [otelcol.exporter.loadbalancing.default.input]
     }
 }
 

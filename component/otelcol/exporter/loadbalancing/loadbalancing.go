@@ -4,13 +4,17 @@ package loadbalancing
 import (
 	"time"
 
+	"github.com/alecthomas/units"
 	"github.com/grafana/agent/component"
 	"github.com/grafana/agent/component/otelcol"
+	"github.com/grafana/agent/component/otelcol/auth"
 	"github.com/grafana/agent/component/otelcol/exporter"
 	"github.com/grafana/agent/pkg/river"
 	"github.com/open-telemetry/opentelemetry-collector-contrib/exporter/loadbalancingexporter"
 	otelcomponent "go.opentelemetry.io/collector/component"
 	otelconfig "go.opentelemetry.io/collector/config"
+	otelconfigauth "go.opentelemetry.io/collector/config/configauth"
+	otelconfiggrpc "go.opentelemetry.io/collector/config/configgrpc"
 	"go.opentelemetry.io/collector/exporter/exporterhelper"
 	"go.opentelemetry.io/collector/exporter/otlpexporter"
 )
@@ -88,7 +92,7 @@ func (otlpConfig OtlpConfig) Convert() otlpexporter.Config {
 		},
 		QueueSettings:      *otlpConfig.Queue.Convert(),
 		RetrySettings:      *otlpConfig.Retry.Convert(),
-		GRPCClientSettings: *(*otelcol.GRPCClientArguments)(&otlpConfig.Client).Convert(),
+		GRPCClientSettings: *otlpConfig.Client.Convert(),
 	}
 }
 
@@ -161,7 +165,7 @@ func (dnsResolver *DNSResolver) Convert() loadbalancingexporter.DNSResolver {
 // Extensions implements exporter.Arguments.
 func (args Arguments) Extensions() map[otelconfig.ComponentID]otelcomponent.Extension {
 	//TODO: Do we need to set these extensions?
-	return (*otelcol.GRPCClientArguments)(&args.Protocol.OTLP.Client).Extensions()
+	return args.Protocol.OTLP.Client.Extensions()
 }
 
 // Exporters implements exporter.Arguments.
@@ -169,13 +173,64 @@ func (args Arguments) Exporters() map[otelconfig.DataType]map[otelconfig.Compone
 	return nil
 }
 
-// GRPCClientArguments is used to configure otelcol.exporter.loadbalancing with
-// component-specific defaults.
-type GRPCClientArguments otelcol.GRPCClientArguments
+// GRPCClientArguments is the same as otelcol.GRPCClientArguments, but without an "endpoint" attribute
+type GRPCClientArguments struct {
+	Compression otelcol.CompressionType `river:"compression,attr,optional"`
+
+	TLS       otelcol.TLSClientArguments        `river:"tls,block,optional"`
+	Keepalive *otelcol.KeepaliveClientArguments `river:"keepalive,block,optional"`
+
+	ReadBufferSize  units.Base2Bytes  `river:"read_buffer_size,attr,optional"`
+	WriteBufferSize units.Base2Bytes  `river:"write_buffer_size,attr,optional"`
+	WaitForReady    bool              `river:"wait_for_ready,attr,optional"`
+	Headers         map[string]string `river:"headers,attr,optional"`
+	BalancerName    string            `river:"balancer_name,attr,optional"`
+
+	// Auth is a binding to an otelcol.auth.* component extension which handles
+	// authentication.
+	Auth *auth.Handler `river:"auth,attr,optional"`
+}
 
 var (
 	_ river.Defaulter = &GRPCClientArguments{}
 )
+
+// Convert converts args into the upstream type.
+func (args *GRPCClientArguments) Convert() *otelconfiggrpc.GRPCClientSettings {
+	if args == nil {
+		return nil
+	}
+
+	// Configure the authentication if args.Auth is set.
+	var auth *otelconfigauth.Authentication
+	if args.Auth != nil {
+		auth = &otelconfigauth.Authentication{AuthenticatorID: args.Auth.ID}
+	}
+
+	return &otelconfiggrpc.GRPCClientSettings{
+		Compression: args.Compression.Convert(),
+
+		TLSSetting: *args.TLS.Convert(),
+		Keepalive:  args.Keepalive.Convert(),
+
+		ReadBufferSize:  int(args.ReadBufferSize),
+		WriteBufferSize: int(args.WriteBufferSize),
+		WaitForReady:    args.WaitForReady,
+		Headers:         args.Headers,
+		BalancerName:    args.BalancerName,
+
+		Auth: auth,
+	}
+}
+
+// Extensions exposes extensions used by args.
+func (args *GRPCClientArguments) Extensions() map[otelconfig.ComponentID]otelcomponent.Extension {
+	m := make(map[otelconfig.ComponentID]otelcomponent.Extension)
+	if args.Auth != nil {
+		m[args.Auth.ID] = args.Auth.Extension
+	}
+	return m
+}
 
 // DefaultGRPCClientArguments holds component-specific default settings for
 // GRPCClientArguments.

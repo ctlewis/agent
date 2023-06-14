@@ -62,7 +62,7 @@ The following arguments are supported:
 
 Name | Type | Description | Default | Required
 ---- | ---- | ----------- | ------- | --------
-`endpoint` | `string` | `host:port` to send telemetry data to. | `""` | no
+`endpoint` | `string` | `host:port` to send telemetry data to. | | yes
 `compression` | `string` | Compression mechanism to use for requests. | `"gzip"` | no
 `read_buffer_size` | `string` | Size of the read buffer the gRPC client to use for reading server responses. | | no
 `write_buffer_size` | `string` | Size of the write buffer the gRPC client to use for writing requests. | `"512KiB"` | no
